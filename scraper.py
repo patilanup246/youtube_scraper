@@ -1,39 +1,46 @@
+import time
 import requests
 from bs4 import BeautifulSoup
 from subscriptions import channels
 
 videos = []
 
-channel_name = channels[0]["channel"]
-channel_id = channels[0]["id"] #"UCYO_jab_esuFRV4b17AJtAw"
+start = time.time()
 
-r = requests.get("https://www.youtube.com/channel/{}/videos".format(channel_id))
+for channel in channels:
+	channel_name = channel["channel"]
+	channel_id = channel["id"]
 
-soup = BeautifulSoup(r.text, 'html.parser')
+	r = requests.get("https://www.youtube.com/channel/{}/videos".format(channel_id))
 
-title = soup.select('h3.yt-lockup-title')
-meta = soup.select('div.yt-lockup-meta')
-thumbnail_span = soup.select('span.yt-thumb-clip')[6:]
+	soup = BeautifulSoup(r.text, 'html.parser')
 
-# Title, link, duration
-video_attr = [[vid.a.attrs['title'],vid.a.attrs['href'],vid.span.string[10:]] for vid in title]
+	title = soup.select('h3.yt-lockup-title')
+	meta = soup.select('div.yt-lockup-meta')
+	thumbnail_span = soup.select('span.yt-thumb-clip')[6:]
 
-# views, age
-description = [[m.ul.li.string, m.ul.li.next_sibling.string[4:]] for m in meta]
+	# Title, link, duration
+	video_attr = [[vid.a.attrs['title'],vid.a.attrs['href'],vid.span.string[10:]] for vid in title]
 
-# complete link to thumbnail
-thumbnails = [thumb.img.attrs['src'] for thumb in thumbnail_span]
+	# views, age
+	description = [[m.ul.li.string, m.ul.li.next_sibling.string[4:]] for m in meta]
 
-videos += [{"channel": channel_name,
-			"title": video_attr[i][0],
-			"link": video_attr[i][1],
-			"duration": video_attr[i][2],
-			"views": description[i][0],
-			"age": description[i][1],
-			"thumbnail": thumbnails[i]} for i in range(len(video_attr))][:20]
+	# complete link to thumbnail
+	thumbnails = [thumb.img.attrs['src'] for thumb in thumbnail_span]
 
+	videos += [{"channel": channel_name,
+				"title": video_attr[i][0],
+				"link": video_attr[i][1],
+				"duration": video_attr[i][2],
+				"views": description[i][0],
+				"age": description[i][1],
+				"thumbnail": thumbnails[i]} for i in range(len(video_attr))] # number of videos per channel
+
+
+end = time.time()
+			
 for i in range(len(videos)):
 	print("{}. Video: {}\n".format(i+1, videos[i]))
 	
-
+print("Elapsed time: {} seconds".format(end-start))
 
