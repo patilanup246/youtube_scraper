@@ -1,3 +1,6 @@
+# channel can be freely selected
+# id: youtube.com/channel/{id}
+
 channels = [
 			{"channel": "3Blue1Brown", "id": "UCYO_jab_esuFRV4b17AJtAw"},
 			{"channel": "5 Ideen", "id": "UCXTTZIvh1UAlf0kv6XHvOtg"},
