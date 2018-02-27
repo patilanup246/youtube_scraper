@@ -29,7 +29,6 @@ for channel in channels:
 
 	title = soup.select('h3.yt-lockup-title')
 	meta = soup.select('div.yt-lockup-meta')
-	thumbnail_span = soup.select('span.yt-thumb-clip')[6:]
 
 	# Title, (relative) link; location of strip needs to be modified for other languages
 	video_attr = [[vid.a.attrs['title'],vid.a.attrs['href']] for vid in title]
@@ -43,7 +42,7 @@ for channel in channels:
 		age[i] = int(number) * dates[period]
 
 	videos += [{"channel": channel_name,
-				"title": video_attr[i][0].replace('<','').replace('>','').replace('/','').replace('\\','').replace('*','').replace(':','').replace('?','').replace('|','').replace('.',''),
+				"title": video_attr[i][0].replace('<','').replace('>','').replace('/','').replace('\\','').replace('*','').replace(':','').replace('?','').replace('|','').replace('.','').replace('#','').replace('"','').replace('\'',''),
 				"link": video_attr[i][1],
 				"age": age[i]} for i in range(num)]
 				
@@ -53,7 +52,7 @@ offline_videos = [video for video in os.listdir("Videos") if os.path.isfile("Vid
 vids_deleted = 0
 
 for i in range(len(offline_videos)):
-	vid = offline_videos[i][:-4]
+	vid, ext = os.path.splitext(offline_videos[i])
 	is_in_list = False
 	
 	for list_vid in videos:
@@ -62,8 +61,8 @@ for i in range(len(offline_videos)):
 			break
 	if not is_in_list:
 		vids_deleted += 1
-		print("Deleting: \"{}.mp4\"\n".format(vid))
-		os.remove("{}/{}.mp4".format(destination,vid))		
+		print("Deleting: \"{}{}\"\n".format(vid,ext))
+		os.remove("{}/{}{}".format(destination,vid,ext))		
 
 sorted_videos = sorted(videos, key=itemgetter('age'), reverse=True)
 
