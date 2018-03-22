@@ -42,7 +42,7 @@ for channel in channels:
 		age[i] = int(number) * dates[period]
 
 	videos += [{"channel": channel_name,
-				"title": video_attr[i][0].replace('<','').replace('>','').replace('/','').replace('\\','').replace('*','').replace(':','').replace('?','').replace('|','').replace('.','').replace('#','').replace('"','').replace('\'',''),
+				"title": video_attr[i][0].replace('<','').replace('>','').replace('/','').replace('\\','').replace('*','').replace(':','').replace('?','').replace('|','').replace('.','').replace('#','').replace('"','').replace('\'','').replace(',','').replace('$',''),
 				"link": video_attr[i][1],
 				"age": age[i]} for i in range(num)]
 				
