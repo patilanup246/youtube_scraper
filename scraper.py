@@ -1,5 +1,6 @@
 import os
 import time
+import re
 import requests
 from bs4 import BeautifulSoup
 from pytube import YouTube
@@ -12,7 +13,7 @@ dates = {	"Sekunde": 1, "Sekunden": 1, "Minute": 60, "Minuten": 60, "Stunde": 36
 			"Stunden": 3600, "Tag": 86400, "Tagen": 86400, "Woche": 604800, "Wochen": 604800, 
 			"Monat": 2592000, "Monaten": 2592000, "Jahr": 31104000, "Jahren": 31104000}
 
-destination = "Videos"
+destination = "C:\\Users\\aaron\\Videos\\YouTube"
 
 videos = []
 
@@ -21,7 +22,6 @@ start = time.time()
 for channel in channels:
 	channel_name = channel['channel']
 	channel_id = channel['id']
-	num = channel['num']
 
 	r = requests.get("https://www.youtube.com/channel/{}/videos".format(channel_id))
 
@@ -42,29 +42,30 @@ for channel in channels:
 		age[i] = int(number) * dates[period]
 
 	videos += [{"channel": channel_name,
-				"title": video_attr[i][0].replace('<','').replace('>','').replace('/','').replace('\\','').replace('*','').replace(':','').replace('?','').replace('|','').replace('.','').replace('#','').replace('"','').replace('\'','').replace(',','').replace('$',''),
+                                "title": re.sub('[|,.#\'"$%/?\\*~]', '', video_attr[i][0]),
 				"link": video_attr[i][1],
-				"age": age[i]} for i in range(num)]
+				"age": age[i]} for i in range(len(video_attr))]
 				
 
+sorted_videos = sorted(videos, key=itemgetter('age'))[:80]
+sorted_videos = sorted_videos[::-1]
+
 # delete videos that aren't in the list anymore
-offline_videos = [video for video in os.listdir("Videos") if os.path.isfile("Videos/{}".format(video))]
+offline_videos = [video for video in os.listdir(destination) if os.path.isfile("{}\\{}".format(destination,video))]
 vids_deleted = 0
 
 for i in range(len(offline_videos)):
 	vid, ext = os.path.splitext(offline_videos[i])
 	is_in_list = False
 	
-	for list_vid in videos:
+	for list_vid in sorted_videos:
 		if vid == list_vid['title']:
 			is_in_list = True
 			break
 	if not is_in_list:
 		vids_deleted += 1
 		print("Deleting: \"{}{}\"\n".format(vid,ext))
-		os.remove("{}/{}{}".format(destination,vid,ext))		
-
-sorted_videos = sorted(videos, key=itemgetter('age'), reverse=True)
+		os.remove("{}\\{}{}".format(destination,vid,ext))		
 
 vids_downloaded = 0
 for vid in sorted_videos:
@@ -76,7 +77,7 @@ for vid in sorted_videos:
 		vids_downloaded += 1
 		print("Downloading: \"{}\" by {}\n".format(vid['title'], vid['channel']))
 		download_start = time.time()
-		yt.streams.first().download(destination)
+		yt.streams.filter(subtype='mp4').first().download(destination)
 		download_end = time.time()
 		print("Download finished in {:0.0f} seconds\n".format(download_end-download_start))
 		
