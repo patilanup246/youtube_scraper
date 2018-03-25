@@ -42,7 +42,7 @@ for channel in channels:
 		age[i] = int(number) * dates[period]
 
 	videos += [{"channel": channel_name,
-                                "title": re.sub('[|,.#\'"$%/?\\*~]', '', video_attr[i][0]),
+				"title": re.sub('[|,.:;#\'"$%/?\\*~]', '', video_attr[i][0]),
 				"link": video_attr[i][1],
 				"age": age[i]} for i in range(len(video_attr))]
 				
@@ -75,7 +75,7 @@ for vid in sorted_videos:
 		except:
 			continue
 		vids_downloaded += 1
-		print("Downloading: \"{}\" by {}\n".format(vid['title'], vid['channel']))
+		print("[{:2}] Downloading: \"{}\" by {}\n".format(vids_downloaded, vid['title'], vid['channel']))
 		download_start = time.time()
 		yt.streams.filter(subtype='mp4').first().download(destination)
 		download_end = time.time()
