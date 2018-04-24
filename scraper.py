@@ -1,102 +1,83 @@
-import os
-import time
-import re
 import asyncio
-import requests
-from bs4 import BeautifulSoup
+import feedparser
+import os
+import re
+import requests as req
+import time
+from files import File
 from operator import itemgetter
 from pytube import YouTube
-
-from subscriptions import channels
+from subscriptions import destination, num_videos, channels
 
 async def main():
-	
-	start = time.time()
 
-	dates = {	"Sekunde": 1, "Sekunden": 1, "Minute": 60, "Minuten": 60, "Stunde": 3600, 
-			"Stunden": 3600, "Tag": 86400, "Tagen": 86400, "Woche": 604800, "Wochen": 604800, 
-			"Monat": 2592000, "Monaten": 2592000, "Jahr": 31104000, "Jahren": 31104000}
+    start = time.time()
+    loop = asyncio.get_event_loop()
 
-	destination = "C:\\Users\\aaron\\Videos\\YouTube"
+    ch = 0
+    ch_max = len(channels)
+    videos = []
 
-	loop = asyncio.get_event_loop()
+    vids_downloaded = 0
+    vids_deleted = 0
 
-	videos = []
+    requests = [None for channel in channels]
 
-	ch_max = len(channels)
-	ch = 0
+    for i, channel in enumerate(channels):
 
-	req = ["" for i in range(ch_max)]
-	site = [{} for i in range(ch_max)]
+        requests[i] = loop.run_in_executor(None, req.get, channel['url'])
 
-	for i in range(ch_max):
-		url = "https://www.youtube.com/channel/{}/videos".format(channels[i]['id'])
-		req[i] = loop.run_in_executor(None, requests.get, url)
-	
-	for i in range(ch_max):
-		site[i] = [await req[i], channels[i]['channel']]
-		
-		soup = BeautifulSoup(site[i][0].text, 'html.parser')
+    for i in range(ch_max):
+        request = await requests[i]
+        feed = feedparser.parse(request.text).entries
 
-		title = soup.select('h3.yt-lockup-title')
-		meta = soup.select('div.yt-lockup-meta')
+        videos += [{'channel': re.sub('[|,.:;#\'"$%/?\\*~]', '', feed[i].authors[0].name),
+                    'title': re.sub('[|,.:;#\'"$%/?\\*~]', '', feed[i].title),
+                    'link': feed[i].link,
+                    'date': feed[i].published} for i in range(len(feed))]
+        ch += 1
+        progress = int(ch/ch_max*100)
+        bar = '█'*(progress//5) + ' '*(20-progress//5)
+        print(f"Scanning: {bar} {progress/100:.0%}",end='\r')
 
-		video_attr = [[vid.a.attrs['title'],vid.a.attrs['href']] for vid in title]
+    videos = sorted(videos, key=itemgetter('date'))[-num_videos:]
 
-		description = [m.ul.li.next_sibling.string[4:] for m in meta]
-	
-		age = [0 for j in range(len(description))]
-		for j in range(len(description)):
-			number, period = description[j].split()
-			age[j] = int(number) * dates[period]
+    offline_videos = [video for video in os.listdir(destination) if os.path.isfile(f"{destination}\\{video}")]
 
-		videos += 	[{"channel": site[i][1],
-				"title": re.sub('[|,.:;#\'"$%/?\\*~]', '', video_attr[k][0]),
-				"link": video_attr[k][1],
-				"age": age[k]} for k in range(len(video_attr))]
-		ch += 1
-		print("Scanning: {:.0%}".format(ch/ch_max),end='\r')
-	
-	sorted_videos = sorted(videos, key=itemgetter('age'))[:80]
-	sorted_videos = sorted_videos[::-1]
+    for offline_vid in offline_videos:
+        vid, ext = os.path.splitext(offline_vid)
+        is_in_list = False
 
-	offline_videos = [video for video in os.listdir(destination) if os.path.isfile("{}\\{}".format(destination,video))]
-	vids_deleted = 0
+        for list_vid in videos:
+            if vid == f"[{list_vid['channel']}] " + list_vid['title']:
+                is_in_list = True
+                break
+        if not is_in_list:
+            vids_deleted += 1
+            print(f"Deleting: \"{vid}{ext}\"\n")
+            os.remove(f"{destination}\\{vid}{ext}")
 
-	for i in range(len(offline_videos)):
-		vid, ext = os.path.splitext(offline_videos[i])
-		is_in_list = False
-		
-		for list_vid in sorted_videos:
-			if vid == list_vid['title']:
-				is_in_list = True
-				break
-		if not is_in_list:
-			vids_deleted += 1
-			print("Deleting: \"{}{}\"\n".format(vid,ext))
-			os.remove("{}\\{}{}".format(destination,vid,ext))		
-	
-	vids_downloaded = 0
-	for vid in sorted_videos:
-		if not os.path.isfile("{}/{}.mp4".format(destination,vid['title'])):
-			try: # check if video is livestream
-				yt = YouTube("https://youtube.com{}".format(vid['link'])).streams.filter(subtype='mp4').first()
-			except:
-				continue
+    for vid in videos:
+        if not os.path.isfile(f"{destination}/[{vid['channel']}] {vid['title']}.mp4"):
+            try:
+                yt = YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first()
+            except:
+                continue
 
-			vids_downloaded += 1
-			print("[{:2}] Downloading: \"{}\" by {} ({} MB)\n".format(vids_downloaded, vid['title'], vid['channel'], round(yt.filesize/(2**20),1)))
+            vids_downloaded += 1
+            print(f"[{vids_downloaded:2}] Downloading: \"{vid['title']}\" by {vid['channel']} ({round(yt.filesize/(2**20),1)} MB)\n")
 
-			download_start = time.time()
-			yt.download(destination)
-			download_end = time.time()
+            download_start = time.time()
+            yt.download(destination)
+            video_file = File(f"{destination}\\{vid['title']}.mp4")
+            video_file.rename(f"[{vid['channel']}] {vid['title']}.mp4")
+            download_end = time.time()
 
-			print("Download finished in {:0.0f} seconds\n".format(download_end-download_start))
-			
-	end = time.time()		
-	print("Elapsed time: {:.0f} seconds. {} videos downloaded and {} videos deleted".format(end-start, vids_downloaded, vids_deleted))
+            print(f"Download finished in {download_end-download_start:0.0f} seconds\n")
 
+    end = time.time()
+    print(f"Elapsed time: {end-start:.0f} seconds. {vids_downloaded} videos downloaded and {vids_deleted} videos deleted")
 
 if __name__ == '__main__':
-	loop = asyncio.get_event_loop()
-	loop.run_until_complete(main())
+   loop = asyncio.get_event_loop()
+   loop.run_until_complete(main())
