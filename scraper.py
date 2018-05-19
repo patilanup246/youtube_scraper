@@ -69,6 +69,7 @@ async def main():
     finally:
         deletion_file = open(f"{destination}/deleted_vids.txt", "w")
 
+    written_in_file = False
     for offline_vid in offline_videos:
         video_id = id_finder(offline_vid)
         is_in_list = False
@@ -81,7 +82,10 @@ async def main():
         if not is_in_list:
             print(f"Deleted on next run: \"{offline_vid}\"\n")
             deletion_file.write(f"{offline_vid}\n")
-
+            written_in_file = True
+    
+    if not written_in_file:
+        deletion_file.write("")
     deletion_file.close()
 
     for vid in videos:
