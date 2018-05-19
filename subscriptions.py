@@ -1,4 +1,4 @@
-destination = "C:\\Users\\aaron\\Videos\\YouTube"
+destination = "C:/Users/aaron/Videos/YouTube"
 num_videos = 70
 channels = [
 		{"channel": "100SekundenPhysik", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCEJDM_70A2EiRqZ41l6bZlg"},

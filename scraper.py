@@ -58,11 +58,11 @@ async def main():
         deletion_file = open(f"{destination}/deleted_vids.txt", "r")
         for video in deletion_file.readlines():
             try:
-                os.remove(f"{destination}/{video}")
+                os.remove(f"{destination}/{video.rstrip()}")
                 vids_deleted += 1
                 print(f"Deleting {video}")
-            except:
-                pass
+            except Exception as e:
+                print(e)
         deletion_file.close()
     except:
         pass
