@@ -9,10 +9,15 @@ from operator import itemgetter
 from pytube import YouTube
 from subscriptions import destination, num_videos, channels
 
+def id_finder(s):
+    try:
+        return s.split('{')[1].split('}')[0]
+    except:
+        return None
+
 async def main():
 
-    start = time.time()
-    loop = asyncio.get_event_loop()
+    print() # just for style
 
     ch = 0
     ch_max = len(channels)
@@ -22,6 +27,9 @@ async def main():
     vids_deleted = 0
 
     requests = [None for channel in channels]
+
+    start = time.time()
+    loop = asyncio.get_event_loop()
 
     for i, channel in enumerate(channels):
 
@@ -62,17 +70,17 @@ async def main():
         deletion_file = open(f"{destination}/deleted_vids.txt", "w")
 
     for offline_vid in offline_videos:
-        vid, ext = os.path.splitext(offline_vid)
+        video_id = id_finder(offline_vid)
         is_in_list = False
 
         for i, list_vid in enumerate(videos):
-            if vid == f"[{list_vid['channel']}] " + list_vid['title']:
+            if video_id == list_vid['vid_id']:
                 is_in_list = True
                 videos.pop(i)
                 break
         if not is_in_list:
-            print(f"Deleted on next run: \"{vid}{ext}\"\n")
-            deletion_file.write(f"{vid}{ext}\n")
+            print(f"Deleted on next run: \"{offline_vid}\"\n")
+            deletion_file.write(f"{offline_vid}\n")
 
     deletion_file.close()
 
@@ -88,7 +96,7 @@ async def main():
         download_start = time.time()
         yt.download(destination)
         video_file = File(f"{destination}/{vid['title']}.mp4")
-        video_file.rename(f"[{vid['channel']}] {vid['title']}.mp4")
+        video_file.rename(f"[{vid['channel']}] {vid['title']} {{{vid['vid_id']}}}.mp4")
         download_end = time.time()
 
         print(f"Download finished in {download_end-download_start:0.0f} seconds\n")
