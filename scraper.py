@@ -34,6 +34,7 @@ async def main():
         videos += [{'channel': re.sub('[|,.:;#\'"$%/?\\*~]', '', feed[i].authors[0].name),
                     'title': re.sub('[|,.:;#\'"$%/?\\*~]', '', feed[i].title),
                     'link': feed[i].link,
+                    'vid_id': feed[i].yt_videoid,
                     'date': feed[i].published} for i in range(len(feed))]
         ch += 1
         progress = int(ch/ch_max*100)
@@ -43,7 +44,22 @@ async def main():
 
     videos = sorted(videos, key=itemgetter('date'))[-num_videos:]
 
-    offline_videos = [video for video in os.listdir(destination) if os.path.isfile(f"{destination}/{video}")]
+    offline_videos = [video for video in os.listdir(destination) if video.endswith(".mp4")]
+
+    try:
+        deletion_file = open(f"{destination}/deleted_vids.txt", "r")
+        for video in deletion_file.readlines():
+            try:
+                os.remove(f"{destination}/{video}")
+                vids_deleted += 1
+                print(f"Deleting {video}")
+            except:
+                pass
+        deletion_file.close()
+    except:
+        pass
+    finally:
+        deletion_file = open(f"{destination}/deleted_vids.txt", "w")
 
     for offline_vid in offline_videos:
         vid, ext = os.path.splitext(offline_vid)
@@ -55,9 +71,10 @@ async def main():
                 videos.pop(i)
                 break
         if not is_in_list:
-            vids_deleted += 1
-            print(f"Deleting: \"{vid}{ext}\"\n")
-            os.remove(f"{destination}/{vid}{ext}")
+            print(f"Deleted on next run: \"{vid}{ext}\"\n")
+            deletion_file.write(f"{vid}{ext}\n")
+
+    deletion_file.close()
 
     for vid in videos:
         try:
