@@ -3,6 +3,7 @@ import feedparser
 import os
 import re
 import requests as req
+import requests_cache
 import sqlite3
 import sys
 import time
@@ -15,6 +16,8 @@ from subscriptions import destination, num_videos, channels, delta
 execution_path = sys.path[0]
 connection = sqlite3.connect(f"{execution_path}/Videos.db")
 cursor = connection.cursor()
+
+requests_cache.install_cache(f"{execution_path}/cache")
 
 current_time = time.time()
 deletion_time = current_time + delta
