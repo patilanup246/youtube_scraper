@@ -1,5 +1,6 @@
 destination = "C:/Users/aaron/Videos/YouTube"
 num_videos = 70
+delta = 24 * 60 * 60 * 3.2
 channels = [
 		{"channel": "100SekundenPhysik", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCEJDM_70A2EiRqZ41l6bZlg"},
 		{"channel": "3Blue1Brown", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw"},
@@ -73,7 +74,6 @@ channels = [
 		{"channel": "tripcode!Q/7", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCZrrEuHiQjN2CUo84g5tk7w"},
 		{"channel": "tutoriaLinux", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCvA_wgsX6eFAOXI8Rbg_WiQ"},
 		{"channel": "unicks.eu", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCnZIn_CYjz0ErPs1ktH-2lQ"},
-		{"channel": "Unternehmerkanal", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCnYhrUdZTBRe2s1pu-mF2mg"},
 		{"channel": "Valentin Möller", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCyHK70XuRaWjwBnz2jHWxeg"},
 		{"channel": "Versicherungen mit Kopf", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UC70-qPE5cS_aOYAOGnM_24g"},
 		{"channel": "Weitz / HAW Hamburg", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCjTfChr0yyz4iZq0x12Q6xA"},

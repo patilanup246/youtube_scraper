@@ -3,28 +3,82 @@ import feedparser
 import os
 import re
 import requests as req
+import sqlite3
+import sys
 import time
+
 from files import File
 from operator import itemgetter
 from pytube import YouTube
-from subscriptions import destination, num_videos, channels
+from subscriptions import destination, num_videos, channels, delta
 
-def id_finder(s):
+execution_path = sys.path[0]
+connection = sqlite3.connect(f"{execution_path}/Videos.db")
+cursor = connection.cursor()
+
+current_time = time.time()
+deletion_time = current_time + delta
+
+ch = 0
+ch_max = len(channels)
+videos = []
+
+vids_downloaded = 0
+vids_deleted = 0
+
+print() # just for style
+
+def create_table():
+    cursor.execute("CREATE TABLE IF NOT EXISTS videos (name TEXT, date REAL, id TEXT)")
+
+def close_connection():
+    connection.close()
+
+def video_entry(name, date, vid_id):
+    cursor.execute("INSERT INTO videos (name, date, id) VALUES (?, ?, ?)", (name, date, vid_id))
+    connection.commit()
+
+def delete_old_videos():
+    cursor.execute(f"SELECT * FROM videos WHERE date < {current_time}")
+    for row in cursor.fetchall():
+        print(f"Deleting {row[0]}")
+        try:
+            os.remove(f"{destination}/{row[0]}")
+        except Exception as e:
+            print(e)
+    cursor.execute(f"DELETE FROM videos WHERE date < {current_time}")
+    connection.commit()
+
+def already_downloaded():
+    global videos
+    cursor.execute("SELECT * FROM videos")
+    data = cursor.fetchall()
+    for row in data:
+        videos = [vid for vid in videos if not vid.get('vid_id') == row[2]]
+
+def download_vid(vid):
+    global vids_downloaded
     try:
-        return s.split('{')[1].split('}')[0]
-    except:
-        return None
+        yt = YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first()
+    except Exception as e:
+        print(e)
+        return False
+
+    vids_downloaded += 1
+    print(f"[{vids_downloaded:2}] Downloading: \"{vid['title']}\" by {vid['channel']}\n")
+
+    download_start = time.time()
+    yt.download(destination)
+    video_file = File(f"{destination}/{vid['title']}.mp4")
+    video_file.rename(f"[{vid['channel']}] {vid['title']}.mp4")
+    download_end = time.time()
+
+    print(f"Download finished in {download_end-download_start:0.0f} seconds\n")
+    return True
 
 async def main():
 
-    print() # just for style
-
-    ch = 0
-    ch_max = len(channels)
-    videos = []
-
-    vids_downloaded = 0
-    vids_deleted = 0
+    global ch, ch_max, videos, vids_deleted, vids_downloaded
 
     requests = [None for channel in channels]
 
@@ -49,65 +103,24 @@ async def main():
         prog_bar = progress//2
         bar = '█'*(prog_bar) + ' '*(50-prog_bar)
         print(f"Scanning: {bar} {progress/100:.0%}\t",end='\r')
+    print(""*100,end='\r')
 
     videos = sorted(videos, key=itemgetter('date'))[-num_videos:]
 
     offline_videos = [video for video in os.listdir(destination) if video.endswith(".mp4")]
 
-    try:
-        deletion_file = open(f"{destination}/deleted_vids.txt", "r", encoding="utf-8")
-        for video in deletion_file.readlines():
-            try:
-                os.remove(f"{destination}/{video.rstrip()}")
-                vids_deleted += 1
-                print(f"Deleting {video}")
-            except Exception as e:
-                print(e)
-        deletion_file.close()
-    except Exception as e:
-        print(e)
-    finally:
-        deletion_file = open(f"{destination}/deleted_vids.txt", "w", encoding="utf-8")
+    delete_old_videos()
 
-    written_in_file = False
-    for offline_vid in offline_videos:
-        video_id = id_finder(offline_vid)
-        is_in_list = False
-
-        for i, list_vid in enumerate(videos):
-            if video_id == list_vid['vid_id']:
-                is_in_list = True
-                videos.pop(i)
-                break
-        if not is_in_list:
-            print(f"Deleted on next run: \"{offline_vid}\"\n")
-            deletion_file.write(f"{offline_vid}\n")
-            written_in_file = True
-
-    if not written_in_file:
-        deletion_file.write("")
-    deletion_file.close()
+    already_downloaded()
 
     for vid in videos:
-        try:
-            yt = YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first()
-        except Exception as e:
-            print(e)
-            continue
 
-        vids_downloaded += 1
-        print(f"[{vids_downloaded:2}] Downloading: \"{vid['title']}\" by {vid['channel']}\n")
-
-        download_start = time.time()
-        yt.download(destination)
-        video_file = File(f"{destination}/{vid['title']}.mp4")
-        video_file.rename(f"[{vid['channel']}] {vid['title']} {{{vid['vid_id']}}}.mp4")
-        download_end = time.time()
-
-        print(f"Download finished in {download_end-download_start:0.0f} seconds\n")
+        if download_vid(vid):
+            video_entry(f"[{vid['channel']}] {vid['title']}.mp4", deletion_time, vid['vid_id'])
 
     end = time.time()
     print(f"Elapsed time: {end-start:.0f} seconds. {vids_downloaded} videos downloaded and {vids_deleted} videos deleted")
+    close_connection()
 
 if __name__ == '__main__':
    loop = asyncio.get_event_loop()
