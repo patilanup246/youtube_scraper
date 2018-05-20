@@ -55,7 +55,7 @@ async def main():
     offline_videos = [video for video in os.listdir(destination) if video.endswith(".mp4")]
 
     try:
-        deletion_file = open(f"{destination}/deleted_vids.txt", "r")
+        deletion_file = open(f"{destination}/deleted_vids.txt", "r", encoding="utf-8")
         for video in deletion_file.readlines():
             try:
                 os.remove(f"{destination}/{video.rstrip()}")
@@ -64,10 +64,10 @@ async def main():
             except Exception as e:
                 print(e)
         deletion_file.close()
-    except:
-        pass
+    except Exception as e:
+        print(e)
     finally:
-        deletion_file = open(f"{destination}/deleted_vids.txt", "w")
+        deletion_file = open(f"{destination}/deleted_vids.txt", "w", encoding="utf-8")
 
     written_in_file = False
     for offline_vid in offline_videos:
@@ -83,7 +83,7 @@ async def main():
             print(f"Deleted on next run: \"{offline_vid}\"\n")
             deletion_file.write(f"{offline_vid}\n")
             written_in_file = True
-    
+
     if not written_in_file:
         deletion_file.write("")
     deletion_file.close()
@@ -91,7 +91,8 @@ async def main():
     for vid in videos:
         try:
             yt = YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first()
-        except:
+        except Exception as e:
+            print(e)
             continue
 
         vids_downloaded += 1
