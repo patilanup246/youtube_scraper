@@ -3,12 +3,12 @@ import feedparser
 import os
 import re
 import requests as req
-import requests_cache
 import sqlite3
 import sys
 import time
 
 from files import File
+from multiprocessing import Process
 from operator import itemgetter
 from pytube import YouTube
 from subscriptions import destination, num_videos, channels, delta
@@ -16,8 +16,6 @@ from subscriptions import destination, num_videos, channels, delta
 execution_path = sys.path[0]
 connection = sqlite3.connect(f"{execution_path}/Videos.db")
 cursor = connection.cursor()
-
-requests_cache.install_cache(f"{execution_path}/cache")
 
 current_time = time.time()
 deletion_time = current_time + delta
@@ -59,37 +57,14 @@ def already_downloaded():
     for row in data:
         videos = [vid for vid in videos if not vid.get('vid_id') == row[2]]
 
-def download_vid(vid):
-    global vids_downloaded
-    try:
-        yt = YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first()
-    except Exception as e:
-        print(e)
-        return False
-
-    vids_downloaded += 1
-    print(f"[{vids_downloaded:2}] Downloading: \"{vid['title']}\" by {vid['channel']}\n")
-
-    download_start = time.time()
-    yt.download(destination)
-    video_file = File(f"{destination}/{vid['title']}.mp4")
-    video_file.rename(f"[{vid['channel']}] {vid['title']}.mp4")
-    download_end = time.time()
-
-    print(f"Download finished in {download_end-download_start:0.0f} seconds\n")
-    return True
-
-async def main():
-
-    global ch, ch_max, videos, vids_deleted, vids_downloaded
+async def scrape_channels():
+    global videos, ch, ch_max
 
     requests = [None for channel in channels]
 
-    start = time.time()
     loop = asyncio.get_event_loop()
 
     for i, channel in enumerate(channels):
-
         requests[i] = loop.run_in_executor(None, req.get, channel['url'])
 
     for i in range(ch_max):
@@ -105,26 +80,47 @@ async def main():
         progress = int(ch/ch_max*100)
         prog_bar = progress//2
         bar = '█'*(prog_bar) + ' '*(50-prog_bar)
-        print(f"Scanning: {bar} {progress/100:.0%}\t",end='\r')
+        print(f"Scanning: {bar} {progress/100:.0%}",end='\r')
     print(""*100,end='\r')
 
+def download_vid(vid, i):
+    print(f"[{i+1:2}] Downloading: \"{vid['title']}\" by {vid['channel']}")
+
+    download_start = time.time()
+    YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first().download(destination)
+    video_file = File(f"{destination}/{vid['title']}.mp4")
+    video_file.rename(f"[{vid['channel']}] {vid['title']}.mp4")
+    download_end = time.time()
+
+    print(f"Downloaded {vid['title']} in {download_end-download_start:0.0f} seconds")
+    video_entry(f"[{vid['channel']}] {vid['title']}.mp4", deletion_time, vid['vid_id'])
+
+def main():
+
+    global videos, vids_deleted, vids_downloaded
+
+    start = time.time()
+
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(scrape_channels())
+
     videos = sorted(videos, key=itemgetter('date'))[-num_videos:]
-
     offline_videos = [video for video in os.listdir(destination) if video.endswith(".mp4")]
-
     delete_old_videos()
-
     already_downloaded()
 
-    for vid in videos:
+    p = [None for i in videos]
+    for i, vid in enumerate(videos):
+        p[i] = Process(target=download_vid, args=(vid,i))
+        p[i].start()
+        time.sleep(1)
 
-        if download_vid(vid):
-            video_entry(f"[{vid['channel']}] {vid['title']}.mp4", deletion_time, vid['vid_id'])
+    for i in range(len(p)):
+        p[i].join()
 
     end = time.time()
-    print(f"Elapsed time: {end-start:.0f} seconds. {vids_downloaded} videos downloaded and {vids_deleted} videos deleted")
+    print(f"Elapsed time: {end-start:.0f} seconds. {len(videos)} videos downloaded and {vids_deleted} videos deleted")
     close_connection()
 
 if __name__ == '__main__':
-   loop = asyncio.get_event_loop()
-   loop.run_until_complete(main())
+    main()
