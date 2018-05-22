@@ -7,7 +7,6 @@ import sqlite3
 import sys
 import time
 
-from files import File
 from multiprocessing import Process
 from operator import itemgetter
 from pytube import YouTube
@@ -81,15 +80,13 @@ async def scrape_channels():
         prog_bar = progress//2
         bar = '█'*(prog_bar) + ' '*(50-prog_bar)
         print(f"Scanning: {bar} {progress/100:.0%}",end='\r')
-    print(""*100,end='\r')
+    print(" "*100,end='\r')
 
 def download_vid(vid, i):
     print(f"[{i+1:2}] Downloading: \"{vid['title']}\" by {vid['channel']}")
 
     download_start = time.time()
-    YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first().download(destination)
-    video_file = File(f"{destination}/{vid['title']}.mp4")
-    video_file.rename(f"[{vid['channel']}] {vid['title']}.mp4")
+    YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first().download(output_path=destination, filename=f"[{vid['channel']}] {vid['title']}")
     download_end = time.time()
 
     print(f"Downloaded {vid['title']} in {download_end-download_start:0.0f} seconds")
