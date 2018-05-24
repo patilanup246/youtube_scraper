@@ -80,7 +80,6 @@ async def scrape_channels():
         prog_bar = progress//2
         bar = '█'*(prog_bar) + ' '*(50-prog_bar)
         print(f"Scanning: {bar} {progress/100:.0%}",end='\r')
-    print(" "*100,end='\r')
 
 def download_vid(vid, i):
     print(f"[{i+1:2}] Downloading: \"{vid['title']}\" by {vid['channel']}")
@@ -89,7 +88,7 @@ def download_vid(vid, i):
     YouTube(f"https://youtube.com{vid['link']}").streams.filter(subtype='mp4').first().download(output_path=destination, filename=f"[{vid['channel']}] {vid['title']}")
     download_end = time.time()
 
-    print(f"Downloaded {vid['title']} in {download_end-download_start:0.0f} seconds")
+    print(f"[{i+1:2}] Downloaded \"{vid['title']}\" in {download_end-download_start:0.0f} seconds")
     video_entry(f"[{vid['channel']}] {vid['title']}.mp4", deletion_time, vid['vid_id'])
 
 def main():

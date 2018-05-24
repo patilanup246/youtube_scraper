@@ -1,6 +1,6 @@
 destination = "C:/Users/aaron/Videos/YouTube"
-num_videos = 75
-delta = 24 * 60 * 60 * 3.2
+num_videos = 55
+delta = 24 * 60 * 60 * 4
 channels = [
 		{"channel": "100SekundenPhysik", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCEJDM_70A2EiRqZ41l6bZlg"},
 		{"channel": "3Blue1Brown", "url": "https://www.youtube.com/feeds/videos.xml?channel_id=UCYO_jab_esuFRV4b17AJtAw"},
