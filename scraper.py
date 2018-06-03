@@ -105,14 +105,31 @@ def main():
     delete_old_videos()
     already_downloaded()
 
-    p = [None for i in videos]
     for i, vid in enumerate(videos):
-        p[i] = Process(target=download_vid, args=(vid,i))
-        p[i].start()
-        time.sleep(1)
+        print(f"{i+1}: {vid['title']} by {vid['channel']}")
 
-    for i in range(len(p)):
-        p[i].join()
+    input_str = input("Choose videos to download: ")
+
+    if input_str == "a":
+        p = [None for i in videos]
+        for i, vid in enumerate(videos):
+            p[i] = Process(target=download_vid, args=(vid,i))
+            p[i].start()
+            time.sleep(1)
+
+        for i in range(len(p)):
+            p[i].join()
+
+    else:
+        selected_videos = list(map(lambda x: int(x)-1, input_str.split(",")))
+        p = [None for i in selected_videos]
+        for i, k in enumerate(selected_videos):
+            p[i] = Process(target=download_vid, args=(videos[k],i))
+            p[i].start()
+            time.sleep(1)
+
+        for i in range(len(p)):
+            p[i].join()
 
     end = time.time()
     print(f"Elapsed time: {end-start:.0f} seconds. {len(videos)} videos downloaded and {vids_deleted} videos deleted")
