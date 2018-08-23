@@ -41,11 +41,12 @@ def video_entry(name, date, vid_id):
 def delete_old_videos():
     cursor.execute(f"SELECT * FROM videos WHERE date < {current_time}")
     for row in cursor.fetchall():
-        print(f"Deleting {row[0]}")
-        try:
-            os.remove(f"{destination}/{row[0]}")
-        except Exception as e:
-            print(e)
+        if row[0] != "":
+            print(f"Deleting {row[0]}")
+            try:
+                os.remove(f"{destination}/{row[0]}")
+            except Exception as e:
+                print(e)
     cursor.execute(f"DELETE FROM videos WHERE date < {current_time}")
     connection.commit()
 
@@ -108,6 +109,9 @@ def main():
     for i, vid in enumerate(videos):
         print(f"{i+1}: {vid['title']} by {vid['channel']}")
 
+    if len(videos) == 0:
+        exit()
+
     input_str = input("Choose videos to download: ")
 
     if input_str == "a":
@@ -131,8 +135,12 @@ def main():
         for i in range(len(p)):
             p[i].join()
 
+        for i in range(len(videos)):
+            if i not in selected_videos:
+                video_entry("", deletion_time, videos[i]['vid_id'])
+
     end = time.time()
-    print(f"Elapsed time: {end-start:.0f} seconds. {len(videos)} videos downloaded and {vids_deleted} videos deleted")
+    print(f"Elapsed time: {end-start:.0f} seconds. {len(selected_videos)} videos downloaded and {vids_deleted} videos deleted")
     close_connection()
 
 if __name__ == '__main__':
