@@ -92,6 +92,10 @@ def download_vid(vid, i):
     print(f"[{i+1:2}] Downloaded \"{vid['title']}\" in {download_end-download_start:0.0f} seconds")
     video_entry(f"[{vid['channel']}] {vid['title']}.mp4", deletion_time, vid['vid_id'])
 
+def vids_to_download():
+    input_str = input("Choose videos to download: ")
+    return input_str
+
 def main():
 
     global videos, vids_deleted, vids_downloaded
@@ -112,32 +116,40 @@ def main():
     if len(videos) == 0:
         exit()
 
-    input_str = input("Choose videos to download: ")
+    while True:
+        input_str = vids_to_download()
 
-    if input_str == "a":
-        p = [None for i in videos]
-        for i, vid in enumerate(videos):
-            p[i] = Process(target=download_vid, args=(vid,i))
-            p[i].start()
-            time.sleep(1)
+        if input_str == "a":
+            p = [None for i in videos]
+            for i, vid in enumerate(videos):
+                p[i] = Process(target=download_vid, args=(vid,i))
+                p[i].start()
+                time.sleep(1)
 
-        for i in range(len(p)):
-            p[i].join()
+            for i in range(len(p)):
+                p[i].join()
 
-    else:
-        selected_videos = list(map(lambda x: int(x)-1, input_str.split(",")))
-        p = [None for i in selected_videos]
-        for i, k in enumerate(selected_videos):
-            p[i] = Process(target=download_vid, args=(videos[k],i))
-            p[i].start()
-            time.sleep(1)
+        else:
+            try:
+                selected_videos = list(map(lambda x: int(x)-1, input_str.split(",")))
+            except Exception as e:
+                print("Ungültige Eingabe")
+                continue
+            finally:
+                pass
+            p = [None for i in selected_videos]
+            for i, k in enumerate(selected_videos):
+                p[i] = Process(target=download_vid, args=(videos[k],i))
+                p[i].start()
+                time.sleep(1)
 
-        for i in range(len(p)):
-            p[i].join()
+            for i in range(len(p)):
+                p[i].join()
 
-        for i in range(len(videos)):
-            if i not in selected_videos:
-                video_entry("", deletion_time, videos[i]['vid_id'])
+            for i in range(len(videos)):
+                if i not in selected_videos:
+                    video_entry("", deletion_time, videos[i]['vid_id'])
+            break
 
     end = time.time()
     print(f"Elapsed time: {end-start:.0f} seconds. {len(selected_videos)} videos downloaded and {vids_deleted} videos deleted")
